@@ -17,7 +17,7 @@ jobs:
       - name: Assemble APK from committed base64
         run: |
           set -euo pipefail
-          cat chunks/apk.b64.0 chunks/apk.b64.1 chunks/apk.b64.2 chunks/apk.b64.3 | base64 -d > calculated-plays-debug.apk
+          cat chunks/apk.b64.* | base64 -d > calculated-plays-debug.apk
           python3 - <<'PY'
           from pathlib import Path
           b = Path('calculated-plays-debug.apk').read_bytes()
