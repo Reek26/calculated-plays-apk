@@ -1,0 +1,34 @@
+name: Publish debug APK
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch verified APK
+        run: |
+          set -euo pipefail
+          curl -fsSL -o calculated_plays_debug.apk https://litter.catbox.moe/050xng.apk
+          python3 - <<'PY'
+          from pathlib import Path
+          b = Path('calculated_plays_debug.apk').read_bytes()
+          assert b[:2] == b'PK', b[:8]
+          assert len(b) == 4828717, len(b)
+          print('apk ok', len(b))
+          PY
+      - name: Create public release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.1-debug
+          name: Calculated Plays debug APK (Fold 6)
+          body: |
+            Sideload debug APK for Eric's Galaxy Fold 6.
+            No GitHub login required on this public repo.
+          files: calculated_plays_debug.apk
+          draft: false
+          prerelease: true
+          make_latest: true
