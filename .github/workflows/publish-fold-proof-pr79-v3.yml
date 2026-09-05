@@ -1,0 +1,47 @@
+name: Publish Fold-OPEN PR79 v3 proofs
+
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-fold-proof-pr79-v3.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  proofs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Publish home + rail PNGs to docs/fold-proof-pr79-v3
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git pull --rebase origin main
+          curl -fsSL -o fold-proof-pr79-v3.tar.gz https://transfer.archivete.am/YbNcr/fold-proof-pr79-v3.tar.gz
+          echo '2dcbfd9f15110d99dbde9e9aa659c7cbfc54b5a75fca5390874943bc14d39431  fold-proof-pr79-v3.tar.gz' | sha256sum -c -
+          test "$(wc -c < fold-proof-pr79-v3.tar.gz)" -eq 1564531
+          tar -xzf fold-proof-pr79-v3.tar.gz
+          mkdir -p docs/fold-proof-pr79-v3
+          cp fold-proof-pr79-v3/fold-open-final-home.png fold-proof-pr79-v3/fold-open-final-rail.png docs/fold-proof-pr79-v3/
+          python3 - <<'PY'
+          from pathlib import Path
+          expect = {
+            'fold-open-final-home.png': 804530,
+            'fold-open-final-rail.png': 804588,
+          }
+          root = Path('docs/fold-proof-pr79-v3')
+          for name, size in expect.items():
+              b = (root / name).read_bytes()
+              assert b[:8] == b'\x89PNG\r\n\x1a\n', name
+              assert len(b) == size, (name, len(b))
+              print('png ok', name, len(b))
+          PY
+          git add docs/fold-proof-pr79-v3
+          git diff --cached --quiet && echo 'no proof changes' || git commit -m 'Publish PR79 Fold-OPEN v3 proofs (rail only, SHA b6fef49).'
+          git push origin HEAD:main
