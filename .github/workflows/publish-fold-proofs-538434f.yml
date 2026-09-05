@@ -1,0 +1,75 @@
+name: Publish Fold proofs v2 538434f
+
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-fold-proofs-538434f.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  proofs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch and place Fold-OPEN v2 PNGs
+        run: |
+          set -euo pipefail
+          curl -fsSL -o fold-proofs-538434f.tar.gz https://transfer.archivete.am/13X80a/fold-proofs-538434f.tar.gz
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          b = Path('fold-proofs-538434f.tar.gz').read_bytes()
+          h = hashlib.sha256(b).hexdigest()
+          assert h == '17c701afccda802b899428e94df743c846bd064407755376260f425d9771b0da', h
+          assert len(b) == 3046682, len(b)
+          print('tarball ok', len(b), h)
+          PY
+          tar -xzf fold-proofs-538434f.tar.gz
+          mkdir -p docs/fold-proofs-v2
+          cp fold-proofs-v2/*.png docs/fold-proofs-v2/
+          python3 - <<'PY'
+          from pathlib import Path
+          expect = {
+            'fold-open-final-home.png': 787440,
+            'fold-open-final-home-scrolled.png': 787420,
+            'fold-open-final-stats-player.png': 261287,
+            'fold-open-final-leaders.png': 188172,
+            'fold-open-final-trends.png': 233770,
+            'fold-open-final-bonuses.png': 190146,
+            'fold-open-final-rail.png': 787439,
+          }
+          for name, size in expect.items():
+              b = Path('docs/fold-proofs-v2', name).read_bytes()
+              assert b[:8] == b'\x89PNG\r\n\x1a\n', name
+              assert len(b) == size, (name, len(b))
+              print('png ok', name, len(b))
+          PY
+
+      - name: Commit proofs on main
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/fold-proofs-v2/*.png
+          git diff --cached --quiet && echo 'no proof changes' || git commit -m 'Add Fold-OPEN v2 proofs for SHA 538434f (native-only).'
+          git push origin HEAD:main
+
+      - name: Attach proofs to android-debug-538434f
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-debug-538434f
+          files: |
+            docs/fold-proofs-v2/fold-open-final-home.png
+            docs/fold-proofs-v2/fold-open-final-home-scrolled.png
+            docs/fold-proofs-v2/fold-open-final-stats-player.png
+            docs/fold-proofs-v2/fold-open-final-leaders.png
+            docs/fold-proofs-v2/fold-open-final-trends.png
+            docs/fold-proofs-v2/fold-open-final-bonuses.png
+            docs/fold-proofs-v2/fold-open-final-rail.png
+          draft: false
+          prerelease: true
+          make_latest: false
