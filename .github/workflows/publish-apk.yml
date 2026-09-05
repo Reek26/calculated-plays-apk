@@ -12,21 +12,21 @@ jobs:
       - name: Fetch verified APK
         run: |
           set -euo pipefail
-          curl -fsSL -o calculated_plays_debug.apk https://litter.catbox.moe/050xng.apk
+          curl -fsSL -o calculated_plays_debug.apk https://litter.catbox.moe/ptcqet.apk
           python3 - <<'PY'
           from pathlib import Path
           b = Path('calculated_plays_debug.apk').read_bytes()
           assert b[:2] == b'PK', b[:8]
-          assert len(b) == 4828717, len(b)
+          assert len(b) == 4829269, len(b)
           print('apk ok', len(b))
           PY
       - name: Create public release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1-debug
-          name: Calculated Plays debug APK (Fold 6)
+          tag_name: v0.2-app-home
+          name: Calculated Plays debug APK (app home → login)
           body: |
-            Sideload debug APK for Eric's Galaxy Fold 6.
+            Sideload debug APK. Cold start is research home → login → research UI.
             No GitHub login required on this public repo.
           files: calculated_plays_debug.apk
           draft: false
