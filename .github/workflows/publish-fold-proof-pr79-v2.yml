@@ -1,0 +1,59 @@
+name: Publish Fold-OPEN PR79 v2 proofs
+
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-fold-proof-pr79-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  proofs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Publish PNGs to docs/fold-proof-pr79-v2
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git pull --rebase origin main
+          curl -fsSL -o fold-proofs-dd2fe9f.tar.gz https://transfer.archivete.am/GUGPm/fold-proofs-dd2fe9f.tar.gz
+          echo '9ff43d1099d6a3491a7df3f2fd3ff876ae1ea98f635ca7815678fe7204d77677  fold-proofs-dd2fe9f.tar.gz' | sha256sum -c -
+          test "$(wc -c < fold-proofs-dd2fe9f.tar.gz)" -eq 3044972
+          tar -xzf fold-proofs-dd2fe9f.tar.gz
+          mkdir -p docs/fold-proof-pr79-v2
+          cp fold-proofs-v2/fold-open-final-home.png \
+             fold-proofs-v2/fold-open-final-home-scrolled.png \
+             fold-proofs-v2/fold-open-final-stats-player.png \
+             fold-proofs-v2/fold-open-final-leaders.png \
+             fold-proofs-v2/fold-open-final-trends.png \
+             fold-proofs-v2/fold-open-final-bonuses.png \
+             fold-proofs-v2/fold-open-final-rail.png \
+             docs/fold-proof-pr79-v2/
+          python3 - <<'PY'
+          from pathlib import Path
+          expect = {
+            'fold-open-final-home.png': 786793,
+            'fold-open-final-home-scrolled.png': 786926,
+            'fold-open-final-stats-player.png': 261188,
+            'fold-open-final-leaders.png': 188112,
+            'fold-open-final-trends.png': 233743,
+            'fold-open-final-bonuses.png': 190040,
+            'fold-open-final-rail.png': 786902,
+          }
+          root = Path('docs/fold-proof-pr79-v2')
+          for name, size in expect.items():
+              b = (root / name).read_bytes()
+              assert b[:8] == b'\x89PNG\r\n\x1a\n', name
+              assert len(b) == size, (name, len(b))
+              print('png ok', name, len(b))
+          PY
+          git add docs/fold-proof-pr79-v2
+          git diff --cached --quiet && echo 'no proof changes' || git commit -m 'Publish PR79 Fold-OPEN v2 proofs (dd2fe9f) to docs/fold-proof-pr79-v2.'
+          git push origin HEAD:main
