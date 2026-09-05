@@ -1,35 +1,42 @@
 name: Publish debug APK
+
 on:
   push:
     branches: [main]
   workflow_dispatch:
+
 permissions:
   contents: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - name: Fetch verified APK
+      - uses: actions/checkout@v4
+
+      - name: Assemble APK from committed base64
         run: |
           set -euo pipefail
-          curl -fsSL -o calculated_plays_debug.apk https://tmpfiles.org/dl/1788578580.ddcc3d9fdb807479/w5wZk5UNqzo5/app-debug.apk
+          cat chunks/apk.b64.0 chunks/apk.b64.1 chunks/apk.b64.2 chunks/apk.b64.3 | base64 -d > calculated-plays-debug.apk
           python3 - <<'PY'
           from pathlib import Path
-          b = Path('calculated_plays_debug.apk').read_bytes()
+          b = Path('calculated-plays-debug.apk').read_bytes()
           assert b[:2] == b'PK', b[:8]
-          assert len(b) == 4832209, len(b)
+          assert len(b) == 4124866, len(b)
           print('apk ok', len(b))
           PY
+
       - name: Create public release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.3-login-toggle
-          name: Calculated Plays debug APK (login eyeball, no fake 10k)
+          tag_name: android-debug-5695be6
+          name: Calculated Plays debug APK (SHA 5695be6)
           body: |
-            Sideload debug APK. Cold start is splash → login → research home.
-            Login password field has a show/hide eyeball. Fake "10000 users" line removed.
+            Sideload debug APK from frontend SHA 5695be6 (PR 77 draft).
+            Cold start: splash → login → research home (Slate / Leaders / Stats).
+            Password eyeball. Fake 10000 users line removed.
             No GitHub login required on this public repo.
-          files: calculated_plays_debug.apk
+          files: calculated-plays-debug.apk
           draft: false
           prerelease: true
           make_latest: true
