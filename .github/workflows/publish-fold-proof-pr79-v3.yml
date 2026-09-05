@@ -28,38 +28,16 @@ jobs:
           test "$(wc -c < fold-proof-pr79-v3.tar.gz)" -eq 4044739
           tar -xzf fold-proof-pr79-v3.tar.gz
           mkdir -p docs/fold-proof-pr79-v3
-          cp fold-proof-pr79-v3/fold-open-v3-home.png \
-             fold-proof-pr79-v3/fold-open-v3-home-scrolled.png \
-             fold-proof-pr79-v3/fold-open-v3-rail.png \
-             fold-proof-pr79-v3/fold-open-v3-stats-player.png \
-             fold-proof-pr79-v3/fold-open-v3-leaders.png \
-             fold-proof-pr79-v3/fold-open-v3-trends.png \
-             fold-proof-pr79-v3/fold-open-v3-bonuses.png \
-             fold-proof-pr79-v3/fold-cover-v3-tabs.png \
-             fold-proof-pr79-v3/fold-cover-v3-904.png \
-             fold-proof-pr79-v3/fold-cover-phone-more.png \
-             docs/fold-proof-pr79-v3/
-          cat > docs/fold-proof-pr79-v3/README.md <<'EOF'
-# PR 79 v3 Fold proofs (SHA cd3357c)
-
-Native-only layout-preview shots. Fold OPEN = side rail, **no BottomNav**. Cover/phone = bottom tabs + More.
-
-## Fold OPEN (2208×1840) — rail only
-
-- https://raw.githubusercontent.com/Reek26/calculated-plays-apk/main/docs/fold-proof-pr79-v3/fold-open-v3-home.png
-- https://raw.githubusercontent.com/Reek26/calculated-plays-apk/main/docs/fold-proof-pr79-v3/fold-open-v3-rail.png
-- https://raw.githubusercontent.com/Reek26/calculated-plays-apk/main/docs/fold-proof-pr79-v3/fold-open-v3-home-scrolled.png
-- https://raw.githubusercontent.com/Reek26/calculated-plays-apk/main/docs/fold-proof-pr79-v3/fold-open-v3-stats-player.png
-- https://raw.githubusercontent.com/Reek26/calculated-plays-apk/main/docs/fold-proof-pr79-v3/fold-open-v3-leaders.png
-- https://raw.githubusercontent.com/Reek26/calculated-plays-apk/main/docs/fold-proof-pr79-v3/fold-open-v3-trends.png
-- https://raw.githubusercontent.com/Reek26/calculated-plays-apk/main/docs/fold-proof-pr79-v3/fold-open-v3-bonuses.png
-
-## Cover / phone — bottom tabs + More
-
-- https://raw.githubusercontent.com/Reek26/calculated-plays-apk/main/docs/fold-proof-pr79-v3/fold-cover-v3-tabs.png
-- https://raw.githubusercontent.com/Reek26/calculated-plays-apk/main/docs/fold-proof-pr79-v3/fold-cover-v3-904.png
-- https://raw.githubusercontent.com/Reek26/calculated-plays-apk/main/docs/fold-proof-pr79-v3/fold-cover-phone-more.png
-EOF
+          cp fold-proof-pr79-v3/fold-open-v3-home.png docs/fold-proof-pr79-v3/
+          cp fold-proof-pr79-v3/fold-open-v3-home-scrolled.png docs/fold-proof-pr79-v3/
+          cp fold-proof-pr79-v3/fold-open-v3-rail.png docs/fold-proof-pr79-v3/
+          cp fold-proof-pr79-v3/fold-open-v3-stats-player.png docs/fold-proof-pr79-v3/
+          cp fold-proof-pr79-v3/fold-open-v3-leaders.png docs/fold-proof-pr79-v3/
+          cp fold-proof-pr79-v3/fold-open-v3-trends.png docs/fold-proof-pr79-v3/
+          cp fold-proof-pr79-v3/fold-open-v3-bonuses.png docs/fold-proof-pr79-v3/
+          cp fold-proof-pr79-v3/fold-cover-v3-tabs.png docs/fold-proof-pr79-v3/
+          cp fold-proof-pr79-v3/fold-cover-v3-904.png docs/fold-proof-pr79-v3/
+          cp fold-proof-pr79-v3/fold-cover-phone-more.png docs/fold-proof-pr79-v3/
           python3 - <<'PY'
           from pathlib import Path
           expect = {
@@ -80,6 +58,14 @@ EOF
               assert b[:8] == b'\x89PNG\r\n\x1a\n', name
               assert len(b) == size, (name, len(b))
               print('png ok', name, len(b))
+          readme = root / 'README.md'
+          readme.write_text(
+              'PR 79 v3 Fold proofs (SHA cd3357c).\n\n'
+              'Fold OPEN = side rail, no BottomNav. Cover/phone = bottom tabs + More.\n\n'
+              'OPEN: fold-open-v3-home.png, fold-open-v3-rail.png\n'
+              'Cover: fold-cover-v3-tabs.png, fold-cover-v3-904.png\n'
+          )
+          print('readme ok', readme.stat().st_size)
           PY
           git add docs/fold-proof-pr79-v3
           git diff --cached --quiet && echo 'no proof changes' || git commit -m 'Publish PR79 Fold-OPEN v3 proofs (cd3357c) to docs/fold-proof-pr79-v3.'
