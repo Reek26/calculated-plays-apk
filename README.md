@@ -6,10 +6,10 @@ Cold start is an **app** flow: research home → login → research UI. Not the 
 
 **Download (no GitHub login):**
 
-https://litter.catbox.moe/ptcqet.apk
-
-Verified logged-out APK bytes. Litterbox expires ~72h.
-
-Public GitHub Release (same bytes) if Actions / a human publishes the asset:
-
 https://github.com/Reek26/calculated-plays-apk/releases/download/v0.2-app-home/calculated_plays_debug.apk
+
+Public repo release asset. Verified logged-out: HTTP 200, `application/vnd.android.package-archive`, 4,829,269 bytes, ZIP/APK magic `PK`.
+
+Backup (Litterbox, expires ~72h, same bytes):
+
+https://litter.catbox.moe/ptcqet.apk
