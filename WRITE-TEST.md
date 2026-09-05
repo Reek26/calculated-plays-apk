@@ -1,1 +1,1 @@
-placeholder
+Public Fold-tablet APK for SHA 83114f2 is assembled in the frontend draft PR artifacts. Boss publishes the GitHub Release after reviewing Fold unfolded shots.
