@@ -1,0 +1,60 @@
+name: Publish android-debug-7853a69
+
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-android-debug-7853a69.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch verified APK tarball
+        run: |
+          set -euo pipefail
+          curl -fsSL -o cp-debug-7853a69.tar.gz https://transfer.archivete.am/qSdo4/cp-debug-7853a69.tar.gz
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          b = Path('cp-debug-7853a69.tar.gz').read_bytes()
+          h = hashlib.sha256(b).hexdigest()
+          assert h == '0c103f9418872543bc05602497e7e3f942a4357bb3afe2afb4b89bdce7f945fa', h
+          assert len(b) == 3760366, len(b)
+          print('tarball ok', len(b), h)
+          PY
+          tar -xzf cp-debug-7853a69.tar.gz
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          b = Path('calculated-plays-debug.apk').read_bytes()
+          h = hashlib.sha256(b).hexdigest()
+          assert b[:2] == b'PK', b[:8]
+          assert len(b) == 4408498, len(b)
+          assert h == '276ea416ab2455a803a2502f35e8a87337bf28d4512efc880771041b35221947', h
+          print('apk ok', len(b), h)
+          PY
+
+      - name: Create public release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-debug-7853a69
+          name: Calculated Plays debug APK (SHA 7853a69)
+          body: |
+            Sideload debug APK from frontend SHA 7853a69 (PR 77 draft).
+            Fixes Fold WebView Failed to fetch on login.
+
+            Login POST is absolute HTTPS:
+            https://app.calculatedplays.com/api/auth/login
+            Native HttpURLConnection (CapacitorHttp off).
+
+            SHA256: 276ea416ab2455a803a2502f35e8a87337bf28d4512efc880771041b35221947
+            Size: 4408498 bytes
+            No GitHub login required on this public repo.
+          files: calculated-plays-debug.apk
+          draft: false
+          prerelease: true
+          make_latest: true
