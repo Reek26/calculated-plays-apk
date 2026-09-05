@@ -1,0 +1,38 @@
+name: Publish v0.4 login-fetch APK
+on:
+  push:
+    paths:
+      - .github/workflows/publish-v04-login-fetch.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch verified APK
+        run: |
+          set -euo pipefail
+          curl -fsSL -o calculated_plays_debug.apk https://tmpfiles.org/dl/1788586430.8cbdea4caf5708e0/wYwAkNLRuNtx/app-debug.apk
+          python3 - <<'PY'
+          from pathlib import Path
+          b = Path('calculated_plays_debug.apk').read_bytes()
+          assert b[:2] == b'PK', b[:8]
+          assert len(b) == 5120053, len(b)
+          print('apk ok', len(b))
+          PY
+      - name: Create public release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.4-login-fetch
+          name: Calculated Plays debug APK (native login fetch)
+          body: |
+            Sideload debug APK. Splash → login → research home.
+            Login uses CapacitorHttp to https://app.calculatedplays.com/api/auth/login
+            so Fold WebView CORS from https://localhost no longer Failed to fetch.
+            Password eyeball. Fake 10000 users line removed.
+            No GitHub login required.
+          files: calculated_plays_debug.apk
+          draft: false
+          prerelease: true
+          make_latest: false
