@@ -1,0 +1,56 @@
+name: Publish android-debug-a94457d
+
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-android-debug-a94457d.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch verified APK tarball
+        run: |
+          set -euo pipefail
+          curl -fsSL -o cp-debug-a94457d.tar.gz https://transfer.archivete.am/oFOxT/cp-debug-a94457d.tar.gz
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          b = Path('cp-debug-a94457d.tar.gz').read_bytes()
+          h = hashlib.sha256(b).hexdigest()
+          assert h == 'dcb63bc79cd88de19b56c997498fcabceba5593c33d21d284fa91bab3f1b8cbe', h
+          assert len(b) == 4468013, len(b)
+          print('tarball ok', len(b), h)
+          PY
+          tar -xzf cp-debug-a94457d.tar.gz
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          b = Path('calculated-plays-debug.apk').read_bytes()
+          h = hashlib.sha256(b).hexdigest()
+          assert b[:2] == b'PK', b[:8]
+          assert len(b) == 4843012, len(b)
+          assert h == '9249479412e679837969813a830d565dc1e196d7c3123f65bf11bc1dcc2d240d', h
+          print('apk ok', len(b), h)
+          PY
+
+      - name: Create public release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-debug-a94457d
+          name: Calculated Plays debug APK (SHA a94457d Fold tablet)
+          body: |
+            Sideload debug APK from frontend SHA a94457d (PR 77 draft).
+            Fold unfolded tablet chrome: grouped side rail, sticky header,
+            2-col home, player chart|books, dock-safe insets.
+            Login remains POST https://app.calculatedplays.com/api/auth/login
+            Size: 4843012 bytes
+            SHA256: 9249479412e679837969813a830d565dc1e196d7c3123f65bf11bc1dcc2d240d
+          files: calculated-plays-debug.apk
+          draft: false
+          prerelease: true
+          make_latest: true
