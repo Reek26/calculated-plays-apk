@@ -1,0 +1,59 @@
+name: Publish Fold proofs v2 dd2fe9f
+
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-fold-proofs-dd2fe9f.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  proofs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch and place Fold-OPEN v2 PNGs
+        run: |
+          set -euo pipefail
+          curl -fsSL -o fold-proofs-dd2fe9f.tar.gz https://transfer.archivete.am/GUGPm/fold-proofs-dd2fe9f.tar.gz
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          b = Path('fold-proofs-dd2fe9f.tar.gz').read_bytes()
+          h = hashlib.sha256(b).hexdigest()
+          assert h == '9ff43d1099d6a3491a7df3f2fd3ff876ae1ea98f635ca7815678fe7204d77677', h
+          assert len(b) == 3044972, len(b)
+          print('tarball ok', len(b), h)
+          PY
+          tar -xzf fold-proofs-dd2fe9f.tar.gz
+          mkdir -p docs/fold-proofs-v2
+          cp fold-proofs-v2/*.png docs/fold-proofs-v2/
+          python3 - <<'PY'
+          from pathlib import Path
+          expect = {
+            'fold-open-final-home.png': 786793,
+            'fold-open-final-home-scrolled.png': 786926,
+            'fold-open-final-stats-player.png': 261188,
+            'fold-open-final-leaders.png': 188112,
+            'fold-open-final-trends.png': 233743,
+            'fold-open-final-bonuses.png': 190040,
+            'fold-open-final-rail.png': 786902,
+          }
+          for name, size in expect.items():
+              b = Path('docs/fold-proofs-v2', name).read_bytes()
+              assert b[:8] == b'\x89PNG\r\n\x1a\n', name
+              assert len(b) == size, (name, len(b))
+              print('png ok', name, len(b))
+          PY
+
+      - name: Commit proofs on main
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/fold-proofs-v2/*.png
+          git diff --cached --quiet && echo 'no proof changes' || git commit -m 'Update Fold-OPEN v2 proofs for SHA dd2fe9f (native-only).'
+          git push origin HEAD:main
