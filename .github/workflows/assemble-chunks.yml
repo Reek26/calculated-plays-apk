@@ -1,0 +1,59 @@
+name: Assemble APK base64 chunks
+
+on:
+  push:
+    paths:
+      - 'chunk-parts/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  assemble:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Concatenate 10KB parts into 80KB chunk files
+        run: |
+          set -euo pipefail
+          mkdir -p chunks
+          missing=0
+          for n in $(seq -w 0 22); do
+            parts=(chunk-parts/${n}.*)
+            if [ ! -f "${parts[0]}" ]; then
+              echo "skip ${n}: no parts yet"
+              missing=1
+              continue
+            fi
+            cat chunk-parts/${n}.* > "chunks/apk.b64.${n}"
+            python3 -c "from pathlib import Path; p=Path('chunks/apk.b64.${n}'); assert p.stat().st_size==80000, (p, p.stat().st_size)"
+            echo "assembled chunks/apk.b64.${n} size=80000"
+          done
+          if [ "$missing" = 1 ]; then
+            echo "Not all parts present yet; skip commit"
+            exit 0
+          fi
+      - name: Commit assembled chunk files
+        run: |
+          set -euo pipefail
+          if ! ls chunks/apk.b64.00 >/dev/null 2>&1; then
+            echo "nothing to commit"
+            exit 0
+          fi
+          python3 - <<'PY'
+          from pathlib import Path
+          for n in range(23):
+              p = Path(f'chunks/apk.b64.{n:02d}')
+              assert p.exists() and p.stat().st_size == 80000, p
+          print('all 23 chunks present and 80000 bytes')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add chunks/apk.b64.00 chunks/apk.b64.01 chunks/apk.b64.02 chunks/apk.b64.03 chunks/apk.b64.04 chunks/apk.b64.05 chunks/apk.b64.06 chunks/apk.b64.07 chunks/apk.b64.08 chunks/apk.b64.09 chunks/apk.b64.10 chunks/apk.b64.11 chunks/apk.b64.12 chunks/apk.b64.13 chunks/apk.b64.14 chunks/apk.b64.15 chunks/apk.b64.16 chunks/apk.b64.17 chunks/apk.b64.18 chunks/apk.b64.19 chunks/apk.b64.20 chunks/apk.b64.21 chunks/apk.b64.22
+          if git diff --cached --quiet; then
+            echo "no change"
+            exit 0
+          fi
+          git commit -m "Add APK base64 chunks 00-22 for SHA 5695be6."
+          git push
