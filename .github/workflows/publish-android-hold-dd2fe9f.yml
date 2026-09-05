@@ -1,0 +1,64 @@
+name: Publish android-hold-dd2fe9f
+
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-android-hold-dd2fe9f.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch verified APK tarball
+        run: |
+          set -euo pipefail
+          curl -fsSL -o cp-debug-dd2fe9f.tar.gz https://transfer.archivete.am/12uCLd/cp-debug-dd2fe9f.tar.gz
+          echo '3a8012fc9689004f95cb3f8cf0795fb5b22f88247bbc9f000ff055dba13b1694  cp-debug-dd2fe9f.tar.gz' | sha256sum -c -
+          test "$(wc -c < cp-debug-dd2fe9f.tar.gz)" -eq 4463139
+          tar -xzf cp-debug-dd2fe9f.tar.gz
+          if [ ! -f calculated-plays-debug.apk ]; then
+            APK=$(find . -name 'calculated-plays-debug.apk' | head -n1)
+            cp "$APK" calculated-plays-debug.apk
+          fi
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          b = Path('calculated-plays-debug.apk').read_bytes()
+          h = hashlib.sha256(b).hexdigest()
+          assert b[:2] == b'PK', b[:8]
+          assert len(b) == 4840241, len(b)
+          assert h == '2c483e964f1858622172373602fb67ab36a0096fe17091feb054580e6039af6c', h
+          print('apk ok', len(b), h)
+          PY
+
+      - name: Create public HOLD release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-hold-dd2fe9f
+          target_commitish: main
+          name: HOLD FOR BOSS — debug APK SHA dd2fe9f (supersedes a94457d)
+          body: |
+            HOLD FOR BOSS. Do not send this URL to Eric.
+
+            Sideload debug APK from frontend SHA dd2fe9f (PR 79 draft).
+            Supersedes android-debug-a94457d (PR 77 chrome) when Boss clears.
+
+            Fold-OPEN v2 (~2208): sticky firstbar + 3-col Home, grouped rail,
+            chart|books, dock-clear cover. Native-only via isNativeAndroid /
+            html.cp-native / useFoldTabletChrome. Web unchanged.
+
+            Login POST remains https://app.calculatedplays.com/api/auth/login
+            CapacitorHttp off. No live bake.
+
+            Size: 4840241 bytes
+            SHA256: 2c483e964f1858622172373602fb67ab36a0096fe17091feb054580e6039af6c
+          files: calculated-plays-debug.apk
+          draft: false
+          prerelease: true
+          make_latest: false
