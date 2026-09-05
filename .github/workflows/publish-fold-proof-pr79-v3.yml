@@ -17,23 +17,62 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Publish home + rail PNGs to docs/fold-proof-pr79-v3
+      - name: Publish PNGs to docs/fold-proof-pr79-v3
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git pull --rebase origin main
-          curl -fsSL -o fold-proof-pr79-v3.tar.gz https://transfer.archivete.am/YbNcr/fold-proof-pr79-v3.tar.gz
-          echo '2dcbfd9f15110d99dbde9e9aa659c7cbfc54b5a75fca5390874943bc14d39431  fold-proof-pr79-v3.tar.gz' | sha256sum -c -
-          test "$(wc -c < fold-proof-pr79-v3.tar.gz)" -eq 1564531
+          curl -fsSL -o fold-proof-pr79-v3.tar.gz https://transfer.archivete.am/CVgyk/fold-proof-pr79-v3.tar.gz
+          echo '3c0d164d7ba9986d38c0c9c738d2cb9cd9e9320a6961c0cffccc9b6c46df11fe  fold-proof-pr79-v3.tar.gz' | sha256sum -c -
+          test "$(wc -c < fold-proof-pr79-v3.tar.gz)" -eq 4044739
           tar -xzf fold-proof-pr79-v3.tar.gz
           mkdir -p docs/fold-proof-pr79-v3
-          cp fold-proof-pr79-v3/fold-open-final-home.png fold-proof-pr79-v3/fold-open-final-rail.png docs/fold-proof-pr79-v3/
+          cp fold-proof-pr79-v3/fold-open-v3-home.png \
+             fold-proof-pr79-v3/fold-open-v3-home-scrolled.png \
+             fold-proof-pr79-v3/fold-open-v3-rail.png \
+             fold-proof-pr79-v3/fold-open-v3-stats-player.png \
+             fold-proof-pr79-v3/fold-open-v3-leaders.png \
+             fold-proof-pr79-v3/fold-open-v3-trends.png \
+             fold-proof-pr79-v3/fold-open-v3-bonuses.png \
+             fold-proof-pr79-v3/fold-cover-v3-tabs.png \
+             fold-proof-pr79-v3/fold-cover-v3-904.png \
+             fold-proof-pr79-v3/fold-cover-phone-more.png \
+             docs/fold-proof-pr79-v3/
+          cat > docs/fold-proof-pr79-v3/README.md <<'EOF'
+# PR 79 v3 Fold proofs (SHA cd3357c)
+
+Native-only layout-preview shots. Fold OPEN = side rail, **no BottomNav**. Cover/phone = bottom tabs + More.
+
+## Fold OPEN (2208×1840) — rail only
+
+- https://raw.githubusercontent.com/Reek26/calculated-plays-apk/main/docs/fold-proof-pr79-v3/fold-open-v3-home.png
+- https://raw.githubusercontent.com/Reek26/calculated-plays-apk/main/docs/fold-proof-pr79-v3/fold-open-v3-rail.png
+- https://raw.githubusercontent.com/Reek26/calculated-plays-apk/main/docs/fold-proof-pr79-v3/fold-open-v3-home-scrolled.png
+- https://raw.githubusercontent.com/Reek26/calculated-plays-apk/main/docs/fold-proof-pr79-v3/fold-open-v3-stats-player.png
+- https://raw.githubusercontent.com/Reek26/calculated-plays-apk/main/docs/fold-proof-pr79-v3/fold-open-v3-leaders.png
+- https://raw.githubusercontent.com/Reek26/calculated-plays-apk/main/docs/fold-proof-pr79-v3/fold-open-v3-trends.png
+- https://raw.githubusercontent.com/Reek26/calculated-plays-apk/main/docs/fold-proof-pr79-v3/fold-open-v3-bonuses.png
+
+## Cover / phone — bottom tabs + More
+
+- https://raw.githubusercontent.com/Reek26/calculated-plays-apk/main/docs/fold-proof-pr79-v3/fold-cover-v3-tabs.png
+- https://raw.githubusercontent.com/Reek26/calculated-plays-apk/main/docs/fold-proof-pr79-v3/fold-cover-v3-904.png
+- https://raw.githubusercontent.com/Reek26/calculated-plays-apk/main/docs/fold-proof-pr79-v3/fold-cover-phone-more.png
+EOF
           python3 - <<'PY'
           from pathlib import Path
           expect = {
-            'fold-open-final-home.png': 804530,
-            'fold-open-final-rail.png': 804588,
+            'fold-open-v3-home.png': 804531,
+            'fold-open-v3-home-scrolled.png': 804509,
+            'fold-open-v3-rail.png': 804511,
+            'fold-open-v3-stats-player.png': 278878,
+            'fold-open-v3-leaders.png': 205203,
+            'fold-open-v3-trends.png': 250818,
+            'fold-open-v3-bonuses.png': 209172,
+            'fold-cover-v3-tabs.png': 179245,
+            'fold-cover-v3-904.png': 674793,
+            'fold-cover-phone-more.png': 41676,
           }
           root = Path('docs/fold-proof-pr79-v3')
           for name, size in expect.items():
@@ -43,5 +82,5 @@ jobs:
               print('png ok', name, len(b))
           PY
           git add docs/fold-proof-pr79-v3
-          git diff --cached --quiet && echo 'no proof changes' || git commit -m 'Publish PR79 Fold-OPEN v3 proofs (rail only, SHA b6fef49).'
+          git diff --cached --quiet && echo 'no proof changes' || git commit -m 'Publish PR79 Fold-OPEN v3 proofs (cd3357c) to docs/fold-proof-pr79-v3.'
           git push origin HEAD:main
