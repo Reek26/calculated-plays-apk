@@ -1,0 +1,77 @@
+name: Assemble APK base64 chunks 23-45
+
+on:
+  push:
+    paths:
+      - '.github/workflows/assemble-chunks-23-45.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  assemble:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download and verify exact 80KB chunk files 23-45
+        run: |
+          set -euo pipefail
+          mkdir -p chunks
+          curl -fL --retry 5 --retry-delay 2 -A 'Mozilla/5.0' -o /tmp/apk-chunks-23-45.tar.gz \
+            https://transfer.archivete.am/5ByDx/apk-chunks-23-45.tar.gz
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, tarfile
+          blob = Path('/tmp/apk-chunks-23-45.tar.gz').read_bytes()
+          digest = hashlib.sha256(blob).hexdigest()
+          expect = '1668bc89509ac9dfb37fff0ebd8e80bfbf2f0609a6aa29b6d08567f67102cb15'
+          assert digest == expect, digest
+          with tarfile.open('/tmp/apk-chunks-23-45.tar.gz') as t:
+              t.extractall('/tmp/extracted-23-45')
+          expected = {
+            23: '9bcdb04347bca89415e5520b63bbd08ff7632c731e9b8f7a65c064c44ba52a6f',
+            24: '1aa0131bb23657fccb0fd7565e5022fab249baee83120a5db0c904888f9cc704',
+            25: '0c959d7f845834b22a84da08e0d94374791e0affcd06e943422d482194d0a845',
+            26: 'c95f2795f4bc16f005a7960103e5c87b9edc8c689c341a32542b47ea37bc1b83',
+            27: 'a771bfd72435ffb207d0d292f711c036f9c4133055e983a1268108f5ab5d7fc5',
+            28: 'ab21006d2d4d5f71d1f05391f3b892a992eaf8591412d1b47057f0842461180a',
+            29: 'cc34aaec46cfd598983e4fc07045c57ff0337965646ef8fed8cd99e59204acdc',
+            30: '5e8d4d6439e4e5bbec484e05c0c2a16bf6ed4e47923e69dad7e2f55362d2df54',
+            31: '0c58713b929a066d9afd0b64b01586a7737053399a7dc0a35b613acf9c838186',
+            32: '401c21413a04207891955074fe04f1ea30d232605bd6838d333ae1d94e214444',
+            33: '78d2580f8cf25450d39527dd88b13a9e520d4ba514c89623dd9efbd87be2154a',
+            34: 'df2aefbc18d31db8006058604431d59672cf0d0dc425d34878f19f509709e931',
+            35: '486a5bd429fcfc291a7d69fb9c6a0452fc76ba5e55500377c867b8903d9550c2',
+            36: 'e2981c86e3ad75d7e719c512e6b5d91d0b3e1de411e1f6cb26b1ec912532db88',
+            37: '8f22547e2925b49c124bf4d11facdd8a8f98d14cfbfff9b8edf83bff9ed5dbf6',
+            38: 'e912d68a0f3901142a7eae241e668233ebdeb895204845d3e3acece335f30fba',
+            39: '5d0104b475b7423e9ceb6f785e2ea1a1ca704e5ceb4f01bddd01012ee8fd53bb',
+            40: 'ffa24cd975d0d78fd087f6b0aff27482790a500ebda31a5ae907897621b48841',
+            41: 'e9f6ea7b0bf10f59c6d577f5116c76f366b553cde13337329514ac50c532301a',
+            42: 'ef8670d802560488d8ed76431bd2593384821fab1ee728393dd0a5ee37fe3771',
+            43: '31b83599022fe7e4e01d6649b338f55a5427b1faaaf97c2bfc9d4ea613aea33c',
+            44: '0396602ed58c25f61e1b5feee92aafbaf3c68cb75ef93541bc0cd4e88144a6e1',
+            45: 'dc5ac8205cecbefcb2209bafad5da929e2204f0dff76524548a98489b07c9ddd',
+          }
+          for n, exp in expected.items():
+              src = Path(f'/tmp/extracted-23-45/apk.b64.{n}')
+              dst = Path(f'chunks/apk.b64.{n}')
+              data = src.read_bytes()
+              got = hashlib.sha256(data).hexdigest()
+              assert len(data) == 80000 and got == exp, (n, len(data), got)
+              dst.write_bytes(data)
+              print('ok', dst, 80000, got[:16])
+          PY
+      - name: Commit assembled chunk files
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add chunks/apk.b64.2{3,4,5,6,7,8,9} chunks/apk.b64.3{0,1,2,3,4,5,6,7,8,9} chunks/apk.b64.4{0,1,2,3,4,5}
+          if git diff --cached --quiet; then
+            echo "no change"
+            exit 0
+          fi
+          git commit -m "Add APK base64 chunks 23-45 for SHA 5695be6."
+          git push
