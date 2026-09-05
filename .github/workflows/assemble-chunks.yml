@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'chunk-parts/**'
+      - '.github/workflows/assemble-chunks.yml'
   workflow_dispatch:
 
 permissions:
@@ -14,40 +15,54 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Concatenate 20KB parts into 80KB chunk files
+      - name: Download and verify exact 80KB chunk files
         run: |
           set -euo pipefail
-          mkdir -p chunks
-          missing=0
-          for n in $(seq -w 0 22); do
-            if [ ! -f "chunk-parts/${n}.0" ] || [ ! -f "chunk-parts/${n}.1" ] || [ ! -f "chunk-parts/${n}.2" ] || [ ! -f "chunk-parts/${n}.3" ]; then
-              echo "skip ${n}: need parts 0-3"
-              missing=1
-              continue
-            fi
-            cat "chunk-parts/${n}.0" "chunk-parts/${n}.1" "chunk-parts/${n}.2" "chunk-parts/${n}.3" > "chunks/apk.b64.${n}"
-            python3 -c "from pathlib import Path; p=Path('chunks/apk.b64.${n}'); assert p.stat().st_size==80000, (p, p.stat().st_size)"
-            echo "assembled chunks/apk.b64.${n} size=80000"
-          done
-          if [ "$missing" = 1 ]; then
-            echo "Not all parts present yet; skip commit"
-            exit 0
-          fi
+          curl -fsSL -o /tmp/apk-chunks-00-22.tar.gz https://litter.catbox.moe/9oc585.gz
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, tarfile
+          blob = Path('/tmp/apk-chunks-00-22.tar.gz').read_bytes()
+          digest = hashlib.sha256(blob).hexdigest()
+          expect = 'a0a8b64231e6c90df4a8b84dd25a8ed23222b71a5e9eac8c8dba29a7e8149839'
+          assert digest == expect, digest
+          with tarfile.open('/tmp/apk-chunks-00-22.tar.gz') as t:
+              t.extractall('.')
+          expected = {
+            '00': 'a6039ac67ae224e754ceef54dd231f61a075807017137b27df0202d318608f2b',
+            '01': '3a2162d1820d10f7c048a594ddcf399990d1acdb2138c98ebeb557125a107bae',
+            '02': '584e80a9d6ceedb7c75faea07036556f053b1cc06432cf337c7867e197922440',
+            '03': '6f52c95962402e4f9f39ea3786423b192fcc77ab7d655af0d28c2692132e8fe5',
+            '04': '372a2e24a9b983c1f95cebd36621f13117b9955af6343feb39af25edc3d12ab7',
+            '05': 'f10ee0f2548136a628e96e448266c2025119b8977bb5cdd3cbc88cc0bb3d033c',
+            '06': '5c9e62241957b0d8b13d37cbdc910688e12428c51ed858ad4117444f61b14669',
+            '07': 'd6afac0a2c90566da5694f13beb17db2a321d9a5cbaac33af76cb70860598cd4',
+            '08': '3e96e9a90e652e0c59af0872f904f8c94cf326ceb6fcb7a0cb3f009c0b491dd1',
+            '09': 'ae8852e1240e4f725948e9806aca69751d838a0b5c10c2caaaca37810fa63fd0',
+            '10': '210cabd5ae926c3bfc035d1cf1c22968e6225225062f499e3c0e8164fc6b006a',
+            '11': '31887d7f97805c14bc2b601e97bf8915b984a50b6ded04bfa0f19e31072f04dd',
+            '12': '57aaf0e835541da808e875c6faa33cb2c6a7bcbb2452b7f16bc26e6451cc05e3',
+            '13': '4adf929b13445f98dc45d4fe016ae164341159c40b28502c97b31dab9bc9e84e',
+            '14': '55864ceec45d0b105a349d2c81b10c046d5ea5b31b25cf4164c2be3a0d3ba8f5',
+            '15': '871d05b54654e99ac00989af3c92d7593ced6860d3afd39dc69d71c5070d5845',
+            '16': 'bd62b8f712fb366596ca028c4e71e9bc6f42f6a8e0b2eba683f4fc2a928faa37',
+            '17': '46662de610870a1060a28f20d6d21dc48f64b815a0c9659f6ef179603f6f7b83',
+            '18': '1fe1e5d5b17e7994808d7b60bb95f10e21ccc46ece02aa5a26c602aacc756da5',
+            '19': '2eff1e6738e32de88e7c66331fa152420a25eddff21269e424ffc5308cbb9798',
+            '20': '6f7193fe7d7cc2ab71a49dcb4860fa25952eeea986f75f524ac0366d90da1c75',
+            '21': 'da35cf7cc734a45a889026933cfc7ad88bfaa485dd168ce80a5c0324b92111ab',
+            '22': '3dae266c535d780db297fcc5ee5d21f4be3bc2e88d6bfb1da6bb05c0a3f6b40f',
+          }
+          for n, exp in expected.items():
+              p = Path(f'chunks/apk.b64.{n}')
+              data = p.read_bytes()
+              got = hashlib.sha256(data).hexdigest()
+              assert len(data) == 80000 and got == exp, (n, len(data), got)
+              print('ok', p, 80000, got[:16])
+          PY
       - name: Commit assembled chunk files
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          ready = True
-          for n in range(23):
-              p = Path(f'chunks/apk.b64.{n:02d}')
-              if not (p.exists() and p.stat().st_size == 80000):
-                  ready = False
-                  print('not ready', p)
-          if not ready:
-              raise SystemExit(0)
-          print('all 23 chunks present and 80000 bytes')
-          PY
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add chunks/apk.b64.0{0,1,2,3,4,5,6,7,8,9} chunks/apk.b64.1{0,1,2,3,4,5,6,7,8,9} chunks/apk.b64.2{0,1,2}
