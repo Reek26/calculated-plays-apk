@@ -1,0 +1,55 @@
+name: Attach Fold proofs dd2fe9f
+
+on:
+  push:
+    paths:
+      - '.github/workflows/attach-fold-proofs-dd2fe9f.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  proofs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch Fold-OPEN v2 PNGs
+        run: |
+          set -euo pipefail
+          curl -fsSL -o fold-proofs-dd2fe9f.tar.gz https://transfer.archivete.am/GUGPm/fold-proofs-dd2fe9f.tar.gz
+          echo '9ff43d1099d6a3491a7df3f2fd3ff876ae1ea98f635ca7815678fe7204d77677  fold-proofs-dd2fe9f.tar.gz' | sha256sum -c -
+          tar -xzf fold-proofs-dd2fe9f.tar.gz
+          mkdir -p docs/fold-proofs-v2
+          cp fold-proofs-v2/*.png docs/fold-proofs-v2/
+
+      - name: Attach proofs to HOLD release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-debug-dd2fe9f
+          target_commitish: main
+          files: |
+            docs/fold-proofs-v2/fold-open-final-home.png
+            docs/fold-proofs-v2/fold-open-final-home-scrolled.png
+            docs/fold-proofs-v2/fold-open-final-stats-player.png
+            docs/fold-proofs-v2/fold-open-final-leaders.png
+            docs/fold-proofs-v2/fold-open-final-trends.png
+            docs/fold-proofs-v2/fold-open-final-bonuses.png
+            docs/fold-proofs-v2/fold-open-final-rail.png
+          draft: false
+          prerelease: true
+          make_latest: false
+
+      - name: Commit proofs on main
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git pull --rebase origin main
+          git add docs/fold-proofs-v2/*.png
+          git diff --cached --quiet && echo 'no proof changes' || git commit -m 'Update Fold-OPEN v2 proofs for SHA dd2fe9f (native-only).'
+          git pull --rebase origin main
+          git push origin HEAD:main
