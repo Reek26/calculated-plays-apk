@@ -1,0 +1,58 @@
+name: Publish Fold-OPEN PR79 v7 proofs
+
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-fold-proof-pr79-v7.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  proofs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Publish v7 phone/cover PNGs
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git pull --rebase origin main
+          curl -fsSL -o fold-proof-pr79-v7.tar.gz https://transfer.archivete.am/11dvHs/fold-proof-pr79-v7.tar.gz
+          echo '20d7bdd272bd5ce74ec878846d2baeeb9591316f4471d469f584298428a362b6  fold-proof-pr79-v7.tar.gz' | sha256sum -c -
+          test "$(wc -c < fold-proof-pr79-v7.tar.gz)" -eq 1970617
+          tar -xzf fold-proof-pr79-v7.tar.gz
+          mkdir -p docs/fold-proof-pr79-v7
+          cp fold-proof-pr79-v7/*.png docs/fold-proof-pr79-v7/
+          python3 - <<'PY'
+          from pathlib import Path
+          expect = {
+            'v7-phone-home.png': 208716,
+            'v7-phone-stats.png': 75750,
+            'v7-phone-leaders.png': 50166,
+            'v7-phone-trends.png': 68060,
+            'v7-phone-bonuses.png': 49352,
+            'v7-phone-more.png': 42348,
+            'v7-cover-home.png': 431347,
+            'v7-cover-stats.png': 179359,
+            'v7-cover-leaders.png': 149491,
+            'v7-cover-trends.png': 176564,
+            'v7-cover-bonuses.png': 151465,
+            'v7-cover-more.png': 59472,
+            'v7-cover-sticky-dock.png': 431261,
+          }
+          root = Path('docs/fold-proof-pr79-v7')
+          for name, size in expect.items():
+              b = (root / name).read_bytes()
+              assert b[:8] == b'\x89PNG\r\n\x1a\n', name
+              assert len(b) == size, (name, len(b))
+              print('png ok', name, len(b))
+          PY
+          git add docs/fold-proof-pr79-v7
+          git diff --cached --quiet && echo 'no proof changes' || git commit -m 'Publish PR79 v7 phone/cover proofs (SHA df4987a).'
+          git push origin HEAD:main
