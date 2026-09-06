@@ -1,0 +1,58 @@
+name: Publish android-hold-6bea2f4
+
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-android-hold-6bea2f4.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch verified APK tarball
+        run: |
+          set -euo pipefail
+          curl -fsSL -o cp-debug-6bea2f4.tar.gz https://transfer.archivete.am/11GLi3/cp-debug-6bea2f4.tar.gz
+          echo '6da1a8403859a252e293e5376b7e63e7b341a81ce0546230233471ba09f81a56  cp-debug-6bea2f4.tar.gz' | sha256sum -c -
+          test "$(wc -c < cp-debug-6bea2f4.tar.gz)" -eq 4465467
+          tar -xzf cp-debug-6bea2f4.tar.gz
+          if [ ! -f calculated-plays-debug.apk ]; then
+            APK=$(find . -name 'calculated-plays-debug.apk' | head -n1)
+            cp "$APK" calculated-plays-debug.apk
+          fi
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          b = Path('calculated-plays-debug.apk').read_bytes()
+          h = hashlib.sha256(b).hexdigest()
+          assert b[:2] == b'PK', b[:8]
+          assert len(b) == 4842386, len(b)
+          assert h == '6204c0d0235923fe2909b1bf04049459da68c86fc1a8e8a441bdb822cb1144c6', h
+          print('apk ok', len(b), h)
+          PY
+
+      - name: Create public HOLD release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-hold-6bea2f4
+          target_commitish: main
+          name: HOLD FOR BOSS — debug APK SHA 6bea2f4 (phone/cover v7 ~390 CSS)
+          body: |
+            HOLD FOR BOSS. Do not send this URL to Eric.
+
+            Sideload debug APK from frontend SHA 6bea2f4 (PR 79 draft).
+            Phone/cover ~390 CSS HOF scale. Fold OPEN tablet/rail frozen.
+            Native-only via html.cp-native. Web unchanged.
+
+            Size: 4842386 bytes
+            SHA256: 6204c0d0235923fe2909b1bf04049459da68c86fc1a8e8a441bdb822cb1144c6
+          files: calculated-plays-debug.apk
+          draft: false
+          prerelease: true
+          make_latest: false
