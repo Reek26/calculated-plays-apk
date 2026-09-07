@@ -1,0 +1,61 @@
+name: Publish PR79 v8 proofs 86629ac
+
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-fold-proof-pr79-v8-86629ac.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  proofs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Publish v8 phone PNGs
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git pull --rebase origin main
+          curl -fsSL -o fold-proof-pr79-v8.tar.gz https://transfer.archivete.am/ITSZN/fold-proof-pr79-v8b.tar.gz
+          echo '0ac21872c0904b74dc202b0b2dca33f38706cf0b313fb973a1a80895ba6bff62  fold-proof-pr79-v8.tar.gz' | sha256sum -c -
+          test "$(wc -c < fold-proof-pr79-v8.tar.gz)" -eq 1010521
+          tar -xzf fold-proof-pr79-v8.tar.gz
+          mkdir -p docs/fold-proof-pr79-v8
+          cp fold-proof-pr79-v8/*.png docs/fold-proof-pr79-v8/
+          python3 - <<'PY'
+          from pathlib import Path
+          expect = {
+            'v8-phone-home.png': 211831,
+            'v8-phone-stats.png': 78275,
+            'v8-phone-leaders.png': 50848,
+            'v8-phone-trends.png': 69626,
+            'v8-phone-more-open.png': 44016,
+            'v8-phone-more.png': 44016,
+            'v8-phone-all-picks.png': 37981,
+            'v8-phone-todays-picks.png': 64411,
+            'v8-phone-my-book.png': 63411,
+            'v8-phone-live-feed.png': 34461,
+            'v8-phone-wins.png': 44720,
+            'v8-phone-compare.png': 71406,
+            'v8-phone-odds.png': 56498,
+            'v8-phone-parlay.png': 54790,
+            'v8-phone-bonuses.png': 50274,
+            'v8-phone-account.png': 60795,
+          }
+          root = Path('docs/fold-proof-pr79-v8')
+          for name, size in expect.items():
+              b = (root / name).read_bytes()
+              assert b[:8] == b'\x89PNG\r\n\x1a\n', name
+              assert len(b) == size, (name, len(b))
+              print('png ok', name, len(b))
+          PY
+          git add docs/fold-proof-pr79-v8
+          git diff --cached --quiet && echo 'no proof changes' || git commit -m 'Update PR79 v8 phone-route proofs (SHA 86629ac).'
+          git push origin HEAD:main
